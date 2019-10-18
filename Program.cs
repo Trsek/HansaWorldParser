@@ -14,6 +14,7 @@ namespace HansaWorldParser
         static string start_dir = AppDomain.CurrentDomain.BaseDirectory;
         static string error_txt = "error.txt";
         static string global_text = "global";
+        static string global2_text = "global updating";
         static string external_text = "external";
         static string remote_text = "remote";
         static string inner_text = "inner";
@@ -146,13 +147,14 @@ namespace HansaWorldParser
 
             for(int i=0; i<lines.Length - 1; i++)
             {
-                if( lines[i].Equals(global_text, StringComparison.InvariantCultureIgnoreCase))
+                lines[i] = lines[i].Trim();
+                if ( lines[i].Equals(global_text, StringComparison.InvariantCultureIgnoreCase)
+                  || lines[i].Equals(global2_text, StringComparison.InvariantCultureIgnoreCase))
                 {
                     string proc_name = string.Empty;
                     while (!proc_name.Contains(")"))
                     {
                         proc_name += " " + StripComments(lines[i + 1]).Trim();
-                        //System.IO.File.AppendAllText(global_txt + ".raw", lines[i + 1] + "\n");
                         i++;    // je to prasarna
                     }
 
