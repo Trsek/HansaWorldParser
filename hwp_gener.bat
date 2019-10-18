@@ -9,6 +9,6 @@ rem --------------------------------------------------------------------------
 HansaWorldParser.exe -s"D:\HansaWorld\Zdrojovy kod" -g
 copy global.txt global.hansa
 
-HansaWorldParser.exe -s"D:\HansaWorld\Patince-8.5\halcust" -g
+HansaWorldParser.exe -s"D:\HansaWorld\Patince_Devel_Small_85190605" -g
 copy global.txt global.patince
 type global.hansa >> global.txt

@@ -6,5 +6,5 @@ rem Mistake store to file error.txt.
 rem                                         Software (c) 2019, Zdeno Sekerak
 rem --------------------------------------------------------------------------
 
-rem HansaWorldParser.exe -s"D:\HansaWorld\Patince-8.5\halcust\Printers" -t
-HansaWorldParser.exe -s"D:\HansaWorld\Patince-8.5\halcust" -t
+rem HansaWorldParser.exe -s"D:\HansaWorld\Patince_Devel_Small_85190605\halcust\Printers" -t
+HansaWorldParser.exe -s"D:\HansaWorld\Patince_Devel_Small_85190605\halcust" -t
