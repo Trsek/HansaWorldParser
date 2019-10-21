@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -14,12 +15,12 @@ namespace HansaWorldParser
         static string start_dir = AppDomain.CurrentDomain.BaseDirectory;
         static string error_txt = "error.txt";
         static string global_text = "global";
-        static string global2_text = "global updating";
         static string external_text = "external";
         static string remote_text = "remote";
         static string inner_text = "inner";
         static string outer_text = "outer";
-        static string updating_text = "updating ";
+        static string begin_text = "begin";
+        static int INDEXOF_NONE = -1;
 
         static string GetVersion()
         {
@@ -122,7 +123,7 @@ namespace HansaWorldParser
             return files.ToArray();
         }
 
-        static string RemoveArguments(string proc_name)
+        static string RemoveArgumentsName(string proc_name)
         {
             var func = Regex.Match(proc_name, @"\b[^()]+\((.*)\)");
             string fncName = func.Groups[0].Value.Split(new char[] { '(' })[0];
@@ -140,34 +141,73 @@ namespace HansaWorldParser
             return proc_name;
         }
 
+        static string StripComments(string code)
+        {
+            var re = @"(@(?:""[^""]*"")+|""(?:[^""\n\\]+|\\.)*""|'(?:[^'\n\\]+|\\.)*')|//.*|/\*(?s:.*?)\*/";
+            return Regex.Replace(code, re, "$1");
+        }
+
+        static bool IsLeftString(string line, string text)
+        {
+            line = line.Trim();
+            if ((line.Length == text.Length)
+             && (line.Equals(text, StringComparison.InvariantCultureIgnoreCase)))
+                return true;
+
+            if ((line.Length > text.Length)
+             && (line.IndexOf(text + " ", StringComparison.InvariantCultureIgnoreCase) == 0))
+                return true;
+
+            return false;
+        }
+
+        // remove global, begin
+        static string GetNormProcedure(string proc_name)
+        {
+            string proc_name_norm = "";
+            foreach (string name in proc_name.Split(' '))
+            {
+                if (name.Equals(global_text, StringComparison.InvariantCultureIgnoreCase))
+                    continue;
+
+                if (name.Equals(begin_text, StringComparison.InvariantCultureIgnoreCase))
+                    break;
+
+                if (name.Trim().Length > 0)
+                    proc_name_norm += name.Trim() + " ";
+            }
+            return proc_name_norm;
+        }
+
         static string[] GetAllFunct_hall(string file_path)
         {
             List<string> funct_global = new List<string>();
             string[] lines = File.ReadAllLines(file_path);
 
-            for(int i=0; i<lines.Length - 1; i++)
+            for (int i=0; i<lines.Length - 1; i++)
             {
-                lines[i] = lines[i].Trim();
-                if ( lines[i].Equals(global_text, StringComparison.InvariantCultureIgnoreCase)
-                  || lines[i].Equals(global2_text, StringComparison.InvariantCultureIgnoreCase))
+                if (IsLeftString(lines[i], global_text))
                 {
-                    string proc_name = string.Empty;
-                    while (!proc_name.Contains(")"))
+                    // find text begin
+                    string proc_name = "";
+                    do
                     {
-                        proc_name += " " + StripComments(lines[i + 1]).Trim();
-                        i++;    // je to prasarna
+                        lines[i] = StripComments(lines[i]);
+                        proc_name += lines[i] + " ";
                     }
+                    while ((i < (lines.Length - 1))
+                           && !lines[i].Contains(")") 
+                           && (lines[i++].IndexOf(begin_text, StringComparison.InvariantCultureIgnoreCase) == INDEXOF_NONE));
 
-                    proc_name = RemoveArguments(proc_name);
+                    proc_name = GetNormProcedure(proc_name);
+                    proc_name = proc_name.Contains("(")
+                            ? RemoveArgumentsName(proc_name)
+                            : proc_name.Trim();
+
                     funct_global.Add(proc_name);
                 }
             }
             return funct_global.ToArray();
-        }
-        static string StripComments(string code)
-        {
-            var re = @"(@(?:""[^""]*"")+|""(?:[^""\n\\]+|\\.)*""|'(?:[^'\n\\]+|\\.)*')|//.*|/\*(?s:.*?)\*/";
-            return Regex.Replace(code, re, "$1");
         }
 
         static string[] CheckFunct_hall(string file_path, string[] funct_hall)
