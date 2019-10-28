@@ -17,6 +17,7 @@ namespace HansaWorldParser
         static string global_text = "global";
         static string external_text = "external";
         static string remote_text = "remote";
+        static string updating_text = "updating";
         static string inner_text = "inner";
         static string outer_text = "outer";
         static string begin_text = "begin";
@@ -34,16 +35,18 @@ namespace HansaWorldParser
             Console.WriteLine("HansaWorlParser ver. {0}.", GetVersion());
             Console.WriteLine("Syntax: ");
             Console.WriteLine(" -h this help");
-            Console.WriteLine(" -g (generate): generate file with all available global functions in actual directory (and subdirectory), store to file Global.txt");
+            Console.WriteLine(" -g (generate): generate file with all available global functions in actual directory (and subdirectory), store to file global.txt");
             Console.WriteLine(" -gFileTxt: like -g but generate to <FileTxt>");
             Console.WriteLine(" -s (start directory or file): path where it start");
             Console.WriteLine(" -t (test): test external use of global functions in actual file or directory and subdirectory, use global.txt, mistake store to error.txt file");
             Console.WriteLine(" -uFileTxt: use <FileTxt> no Global.txt");
+            Console.WriteLine(" -e (exception file): exception file from generate global.txt");
             Console.WriteLine(" -xSetup: parameters store in file <Setup>");
             Console.WriteLine("");
             Console.WriteLine("Example:");
             Console.WriteLine(" HansaWorlParser -g");
             Console.WriteLine(" HansaWorlParser -shalcust -g");
+            Console.WriteLine(" HansaWorlParser -shalcust -eresources.hal -g");
             Console.WriteLine(" HansaWorlParser -sPrinters -t");
             Console.WriteLine(" HansaWorlParser -sFT4000Commands.hal -t");
             Console.WriteLine(" HansaWorlParser -uLocal.txt -sFT4000Commands.hal -t");
@@ -63,6 +66,8 @@ namespace HansaWorldParser
             if (args[0].Substring(0, 2) == "-x")
                 args = File.ReadAllLines(args[0].Substring(2, args[0].Length - 2));
 
+            List<string> except_files = new List<string>();
+
             foreach (var arg_value in args)
             {
                 if (arg_value.Length < 2 || arg_value[0] != '-')
@@ -81,12 +86,16 @@ namespace HansaWorldParser
                         start_dir = value;
                         break;
 
+                    case 'e':
+                        except_files.Add(value);
+                        break;
+
                     case 'g':
                         GenerateGlobal(start_dir);
                         break;
 
                     case 't':
-                        CheckExternal(start_dir);
+                        CheckExternal(start_dir, except_files);
                         break;
 
                     case 'u':
@@ -136,7 +145,7 @@ namespace HansaWorldParser
                 fncParam[i] = str.Substring(0, str.LastIndexOf(" ") < 0 ? 0 : str.LastIndexOf(" "));
             }
 
-            proc_name = fncName + "(" + string.Join(",", fncParam ) + ")";
+            proc_name = fncName.Replace(updating_text, "").Trim() + "(" + string.Join(",", fncParam ) + ")";
             proc_name = proc_name.Replace("  ", " ").Replace(", ", ",");
             return proc_name;
         }
@@ -228,7 +237,7 @@ namespace HansaWorldParser
                     }
 
                     proc_name = proc_name.Substring(external_text.Length, proc_name.Length - external_text.Length - 1).Trim();
-                    proc_name = proc_name.Replace(inner_text, "").Replace(outer_text, "").Replace(remote_text, "");
+                    proc_name = proc_name.Replace(updating_text, "").Replace(inner_text, "").Replace(outer_text, "").Replace(remote_text, "");
                     proc_name = proc_name.Replace("  ", " ").Replace(", ", ",").Trim();
 
                     var results = Array.FindAll(funct_hall, s => s.Equals(proc_name));
@@ -259,7 +268,7 @@ namespace HansaWorldParser
             System.IO.File.WriteAllLines(global_txt, funct_hall.ToArray());
         }
 
-        static void CheckExternal(string start_dir_or_file)
+        static void CheckExternal(string start_dir_or_file, List<string> except_files)
         {
             List<string> funct_mistake = new List<string>();
             string[] files = DirectorySearch(start_dir_or_file);
@@ -268,6 +277,9 @@ namespace HansaWorldParser
             Console.WriteLine("checking ...");
             foreach (string file_path in files)
             {
+                if (except_files.Contains(Path.GetFileName(file_path)))
+                    continue;
+
                 Console.WriteLine(file_path);
                 string[] funct_local = CheckFunct_hall(file_path, funct_hall);
 
