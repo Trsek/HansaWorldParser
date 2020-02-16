@@ -40,14 +40,14 @@ namespace HansaWorldParser
             Console.WriteLine(" -s (start directory or file): path where it start");
             Console.WriteLine(" -t (test): test external use of global functions in actual file or directory and subdirectory, use global.txt, mistake store to error.txt file");
             Console.WriteLine(" -uFileTxt: use <FileTxt> no Global.txt");
-            Console.WriteLine(" -e (exception file): exception file from generate global.txt");
+            Console.WriteLine(" -e (exception file): exception file from testing");
             Console.WriteLine(" -xSetup: parameters store in file <Setup>");
             Console.WriteLine("");
             Console.WriteLine("Example:");
             Console.WriteLine(" HansaWorlParser -g");
             Console.WriteLine(" HansaWorlParser -shalcust -g");
-            Console.WriteLine(" HansaWorlParser -shalcust -eresources.hal -g");
             Console.WriteLine(" HansaWorlParser -sPrinters -t");
+            Console.WriteLine(" HansaWorlParser -s.. -eorigin_windows.hal -t");
             Console.WriteLine(" HansaWorlParser -sFT4000Commands.hal -t");
             Console.WriteLine(" HansaWorlParser -uLocal.txt -sFT4000Commands.hal -t");
             Console.WriteLine("                                                  Software by Zdeno Sekerák 2019");
@@ -188,6 +188,13 @@ namespace HansaWorldParser
             return proc_name_norm;
         }
 
+        static string GetProcedureName(string proc_name)
+        {
+            var func = Regex.Match(proc_name, @"\b[^()]+\((.*)\);");
+            string withoutPar = func.Groups[0].Value.Split(new char[] { '(' })[0];
+            return withoutPar.Split(' ').Last();
+        }
+
         static string[] GetAllFunct_hall(string file_path)
         {
             List<string> funct_global = new List<string>();
@@ -219,7 +226,7 @@ namespace HansaWorldParser
             return funct_global.ToArray();
         }
 
-        static string[] CheckFunct_hall(string file_path, string[] funct_hall)
+        static List<string> CheckFunct_hall(string file_path, string[] funct_hall)
         {
             List<string> funct_mistake = new List<string>();
             string[] lines = File.ReadAllLines(file_path);
@@ -247,7 +254,35 @@ namespace HansaWorldParser
                     }
                 }
             }
-            return funct_mistake.ToArray();
+            return funct_mistake;
+        }
+
+        static List<string> CheckUnusedFunct_hall(string file_path)
+        {
+            List<string> funct_warning = new List<string>();
+            string[] lines = File.ReadAllLines(file_path);
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                lines[i] = StripComments(lines[i]);
+                if (lines[i].Contains(external_text))
+                {
+                    string proc_name = lines[i].Trim();
+                    while (!proc_name.Contains(")"))
+                    {
+                        i++;    // je to prasarna
+                        proc_name += " " + StripComments(lines[i]).Trim();
+                    }
+                    proc_name = GetProcedureName(proc_name);
+
+                    var results = Array.FindAll(lines, s => s.Contains(proc_name));
+                    if (results.Length <= 1)
+                    {
+                        funct_warning.Add(file_path + "(" + (i + 1) + "): Warning 1: unused " + external_text + " function " + proc_name + "()");
+                    }
+                }
+            }
+            return funct_warning;
         }
 
         static void GenerateGlobal(string start_dir_or_file)
@@ -281,9 +316,11 @@ namespace HansaWorldParser
                     continue;
 
                 Console.WriteLine(file_path);
-                string[] funct_local = CheckFunct_hall(file_path, funct_hall);
+                List<string> funct_local = CheckFunct_hall(file_path, funct_hall);
+                List<string> funct_unused = CheckUnusedFunct_hall(file_path);
 
-                if(funct_local.Length > 0)
+                funct_local.AddRange(funct_unused);
+                if (funct_local.Count > 0)
                 {
                     funct_mistake.Add(">>> in file " + file_path);
                     funct_mistake.AddRange(funct_local);
@@ -291,6 +328,7 @@ namespace HansaWorldParser
 
                     foreach(string funct_local_line in funct_local)
                         Console.WriteLine(funct_local_line);
+
                     Console.WriteLine("");
                 }
             }
