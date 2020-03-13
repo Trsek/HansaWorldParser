@@ -170,6 +170,16 @@ namespace HansaWorldParser
             return false;
         }
 
+        static string[] ClearPathSource(string[] funct_hall)
+        {
+            for(int i=0; i<funct_hall.Length; i++)
+            {
+                funct_hall[i] = funct_hall[i].Split('\t')[0];
+            }
+
+            return funct_hall;
+        }
+
         // remove global, begin
         static string GetNormProcedure(string proc_name)
         {
@@ -220,7 +230,7 @@ namespace HansaWorldParser
                             ? RemoveArgumentsName(proc_name)
                             : proc_name.Trim();
 
-                    funct_global.Add(proc_name);
+                    funct_global.Add(proc_name + "\t[" + file_path + "]");
                 }
             }
             return funct_global.ToArray();
@@ -307,7 +317,7 @@ namespace HansaWorldParser
         {
             List<string> funct_mistake = new List<string>();
             string[] files = DirectorySearch(start_dir_or_file);
-            string[] funct_hall = System.IO.File.ReadAllLines(global_txt);
+            string[] funct_hall = ClearPathSource(System.IO.File.ReadAllLines(global_txt));
 
             Console.WriteLine("checking ...");
             foreach (string file_path in files)
