@@ -21,6 +21,7 @@ namespace HansaWorldParser
         static string inner_text = "inner";
         static string outer_text = "outer";
         static string begin_text = "begin";
+        static bool with_filename = false;
         static int INDEXOF_NONE = -1;
 
         static string GetVersion()
@@ -37,6 +38,7 @@ namespace HansaWorldParser
             Console.WriteLine(" -h this help");
             Console.WriteLine(" -g (generate): generate file with all available global functions in actual directory (and subdirectory), store to file global.txt");
             Console.WriteLine(" -gFileTxt: like -g but generate to <FileTxt>");
+            Console.WriteLine(" -n (with filename): file name store to file global.txt with functions");
             Console.WriteLine(" -s (start directory or file): path where it start");
             Console.WriteLine(" -t (test): test external use of global functions in actual file or directory and subdirectory, use global.txt, mistake store to error.txt file");
             Console.WriteLine(" -uFileTxt: use <FileTxt> no Global.txt");
@@ -88,6 +90,10 @@ namespace HansaWorldParser
 
                     case 'e':
                         except_files.Add(value);
+                        break;
+
+                    case 'n':
+                        with_filename = true;
                         break;
 
                     case 'g':
@@ -230,7 +236,7 @@ namespace HansaWorldParser
                             ? RemoveArgumentsName(proc_name)
                             : proc_name.Trim();
 
-                    funct_global.Add(proc_name + "\t[" + file_path + "]");
+                    funct_global.Add(proc_name + (with_filename? ("\t[" + file_path + "]"): ""));
                 }
             }
             return funct_global.ToArray();
@@ -270,6 +276,7 @@ namespace HansaWorldParser
         static List<string> CheckUnusedFunct_hall(string file_path)
         {
             List<string> funct_warning = new List<string>();
+            List<string> funct_duplicity = new List<string>();
             string[] lines = File.ReadAllLines(file_path);
 
             for (int i = 0; i < lines.Length; i++)
@@ -285,11 +292,17 @@ namespace HansaWorldParser
                     }
                     proc_name = GetProcedureName(proc_name);
 
-                    var results = Array.FindAll(lines, s => s.Contains(proc_name));
+                    var results = Array.FindAll(lines, s => s.Contains(proc_name + "("));
                     if (results.Length <= 1)
                     {
                         funct_warning.Add(file_path + "(" + (i + 1) + "): Warning 1: unused " + external_text + " function " + proc_name + "()");
                     }
+
+                    if (funct_duplicity.Contains(proc_name))
+                    {
+                        funct_warning.Add(file_path + "(" + (i + 1) + "): Warning 2: duplicity external " + proc_name + "()");
+                    }
+                    funct_duplicity.Add(proc_name);
                 }
             }
             return funct_warning;
