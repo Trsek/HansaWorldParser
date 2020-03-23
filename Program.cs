@@ -292,7 +292,7 @@ namespace HansaWorldParser
                     }
                     proc_name = GetProcedureName(proc_name);
 
-                    var results = Array.FindAll(lines, s => s.Contains(proc_name + "("));
+                    var results = Array.FindAll(lines, s => s.Contains(proc_name));
                     if (results.Length <= 1)
                     {
                         funct_warning.Add(file_path + "(" + (i + 1) + "): Warning 1: unused " + external_text + " function " + proc_name + "()");
